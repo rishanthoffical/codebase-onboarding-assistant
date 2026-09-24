@@ -1,0 +1,57 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+h1, h2, h3 {
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+.chat-pane {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.citation-chip {
+    display: inline-block;
+    background-color: #e0e0e0;
+    border-radius: 15px;
+    padding: 5px 10px;
+    margin: 5px;
+}
+
+.guardrail-banner {
+    background-color: #ffcc00;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.index-status-panel {
+    background-color: #dff0d8;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.job-trace-panel {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.repo-picker {
+    margin: 10px 0;
+}

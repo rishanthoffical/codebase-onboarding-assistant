@@ -1,0 +1,83 @@
+from pathlib import Path
+
+from app.indexer.chunker import chunk_file
+from app.services.vector_store import VectorStore
+
+
+IGNORED_DIRECTORIES = {
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    "__pycache__",
+    ".pytest_cache",
+    "chroma_db",
+}
+
+
+class RepositoryIndexer:
+
+    def __init__(self, repo_path: str):
+        self.repo_path = Path(repo_path)
+        self.vector_store = VectorStore()
+
+    def get_files(self):
+        files = []
+
+        for path in self.repo_path.rglob("*"):
+
+            if not path.is_file():
+                continue
+
+            if any(
+                ignored in path.parts
+                for ignored in IGNORED_DIRECTORIES
+            ):
+                continue
+
+            files.append(path)
+
+        return files
+
+    def index(self):
+
+        documents = []
+        ids = []
+        metadatas = []
+
+        for file_path in self.get_files():
+
+            chunks = chunk_file(str(file_path))
+
+            for index, chunk in enumerate(chunks):
+
+                relative_path = file_path.relative_to(
+                    self.repo_path
+                )
+
+                chunk_id = (
+                    f"{relative_path}:"
+                    f"{chunk['start_line']}-"
+                    f"{chunk['end_line']}"
+                )
+
+                documents.append(chunk["content"])
+                ids.append(chunk_id)
+
+                metadatas.append({
+                    "file": str(relative_path),
+                    "start_line": chunk["start_line"],
+                    "end_line": chunk["end_line"],
+                })
+
+        if documents:
+            self.vector_store.add_documents(
+                documents=documents,
+                ids=ids,
+                metadatas=metadatas,
+            )
+
+        return {
+            "files": len(self.get_files()),
+            "chunks": len(documents),
+        }

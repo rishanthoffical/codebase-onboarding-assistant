@@ -1,0 +1,161 @@
+from pathlib import Path
+import re
+import subprocess
+from typing import List, Dict
+
+
+def _normalize_repo_path(path: str) -> str:
+    """
+    Normalize paths returned by the repository indexer.
+    """
+
+    normalized = path.replace("\\", "/").lstrip("./")
+
+    if normalized.startswith("backend/"):
+        normalized = normalized[len("backend/"):]
+
+    return normalized
+
+
+def grep_repo(
+    pattern: str,
+    path_glob: str = "**/*"
+) -> List[Dict]:
+    """
+    Search repository files for a text pattern.
+    """
+
+    matches = []
+    root = Path(".")
+
+    try:
+        regex = re.compile(
+            pattern,
+            re.IGNORECASE
+        )
+    except re.error:
+        regex = re.compile(
+            re.escape(pattern),
+            re.IGNORECASE
+        )
+
+    for filepath in root.glob(path_glob):
+
+        if not filepath.is_file():
+            continue
+
+        ignored = {
+            ".git",
+            ".venv",
+            "venv",
+            "node_modules",
+            "__pycache__",
+            ".pytest_cache",
+            "chroma_db",
+        }
+
+        if any(
+            part in ignored
+            for part in filepath.parts
+        ):
+            continue
+
+        try:
+
+            with open(
+                filepath,
+                "r",
+                encoding="utf-8",
+                errors="ignore"
+            ) as file:
+
+                for line_number, line in enumerate(
+                    file,
+                    start=1
+                ):
+
+                    if regex.search(line):
+
+                        matches.append({
+                            "file": str(filepath),
+                            "line": line_number,
+                            "content": line.rstrip(),
+                        })
+
+        except (
+            OSError,
+            UnicodeDecodeError
+        ):
+            continue
+
+    return matches
+
+
+def read_file(
+    path: str,
+    line_start: int = 1,
+    line_end: int | None = None
+) -> str:
+    """
+    Read a specific range of lines from a file.
+    """
+
+    normalized_path = _normalize_repo_path(path)
+
+    with open(
+        normalized_path,
+        "r",
+        encoding="utf-8",
+        errors="ignore"
+    ) as file:
+
+        lines = file.readlines()
+
+    if line_end is None:
+        line_end = len(lines)
+
+    return "".join(
+        lines[line_start - 1:line_end]
+    )
+
+
+def git_blame(
+    path: str,
+    line: int
+) -> dict:
+    """
+    Get Git blame information for a specific line.
+    """
+
+    normalized_path = _normalize_repo_path(path)
+
+    try:
+
+        result = subprocess.run(
+            [
+                "git",
+                "blame",
+                "-L",
+                f"{line},{line}",
+                "--",
+                normalized_path,
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        output = result.stdout.strip()
+
+        if output:
+            return {
+                "blame_info": output
+            }
+
+    except (
+        subprocess.SubprocessError,
+        OSError
+    ):
+        pass
+
+    return {}

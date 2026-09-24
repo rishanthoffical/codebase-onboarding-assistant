@@ -1,0 +1,35 @@
+def extract_function_names(
+    question: str,
+) -> List[str]:
+
+    known_functions = {
+        "scan_for_secrets",
+        "scan_for_insecure_patterns",
+        "scope_guardrail",
+        "guardrail_pipeline",
+        "grep_repo",
+        "read_file",
+        "git_blame",
+        "agent_loop",
+        "build_context",
+        "build_contextual_question",
+        "find_function_sources",
+        "read_function_implementation",
+        "extract_citations",
+        "prioritize_citations",
+        "verify_repository_sources",
+        "detect_tool_calls",
+    }
+
+    question_lower = question.lower()
+
+    found = []
+
+    for function_name in known_functions:
+        if re.search(
+            rf"\b{re.escape(function_name)}\b",
+            question_lower,
+        ):
+            found.append(function_name)
+
+    return found
