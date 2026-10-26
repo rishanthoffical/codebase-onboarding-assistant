@@ -30,3 +30,102 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+
+# Local databases and generated data
+chroma_db/
+chroma_cache/
+chroma_db_backup_*/
+configured-vector-store/
+uploaded_repositories/
+
+# Temporary files and backups
+.pytest-*/
+*.tmp
+*.bak
+*.backup
+*.before-*
+*-backup
+backend/celerybeat-schedule*
+backend-test-results.txt
+
+# IDE
+.vscode/
+
+# Archives
+uploaded-project.zip
+
+# Additional local backups and temporary files
+*.bak*
+*.backup*
+*.before-*
+*.pre_*
+*.followup-backup
+*.step*-backup
+*.citation_extractor_backup
+*.prompt-backup
+*.pyc
+__pycache__/
+.pytest-*/
+backend/app/backend/
+backend/celerybeat-schedule*
+chroma_cache/
+chroma_db_backup_*/
+configured-vector-store/
+uploaded_repositories/
+
+# Exclude backup and temporary files
+*.bak
+*.bak_*
+*.backup
+*.before-*
+*.before_*
+*.pre_*
+*.followup-backup
+*.step*-backup
+*.citation_extractor_backup
+*.prompt-backup
+*.backup2
+
+# Exclude temporary files and local data
+*.tmp
+*.pyc
+__pycache__/
+.pytest-*/
+backend/celerybeat-schedule*
+chroma_cache/
+chroma_db_backup_*/
+configured-vector-store/
+uploaded_repositories/
+
+# Exclude local experiments and malformed files
+backend/app/agent/Untitled-1.md
+backend/original_loop.py
+backend/package.json
+backend/docker-compose.yml
+backend/npm
+# Temporary and backup files
+*.backup
+*.backup.*
+*.bak
+*.before-*
+*.before_*
+*.step*-backup
+*_backup.py
+
+# Accidental empty file
+/frontend/npm

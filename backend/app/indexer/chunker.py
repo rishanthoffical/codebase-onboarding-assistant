@@ -11,39 +11,162 @@ SUPPORTED_EXTENSIONS = {
     ".py",
     ".java",
     ".js",
+    ".mjs",
+    ".cjs",
     ".jsx",
     ".ts",
+    ".mts",
+    ".cts",
     ".tsx",
+    ".vue",
     ".go",
     ".rs",
     ".c",
+    ".cc",
     ".cpp",
+    ".cxx",
+    ".m",
+    ".mm",
     ".h",
     ".hpp",
+    ".hxx",
+    ".cs",
+    ".php",
+    ".rb",
+    ".kt",
+    ".kts",
+    ".swift",
+    ".dart",
+    ".scala",
     ".html",
     ".css",
+    ".scss",
+    ".less",
+    ".xml",
     ".md",
     ".txt",
+    ".rst",
     ".json",
     ".yaml",
     ".yml",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".properties",
+    ".gradle",
     ".sql",
+    ".sh",
+    ".bash",
+    ".ps1",
+    ".bat",
 }
+
+SUPPORTED_FILENAMES = {
+    "dockerfile",
+    "makefile",
+    "gemfile",
+    "procfile",
+}
+
+LANGUAGES_BY_EXTENSION = {
+    ".py": "Python",
+    ".java": "Java",
+    ".js": "JavaScript",
+    ".mjs": "JavaScript",
+    ".cjs": "JavaScript",
+    ".jsx": "JavaScript",
+    ".ts": "TypeScript",
+    ".mts": "TypeScript",
+    ".cts": "TypeScript",
+    ".tsx": "TypeScript",
+    ".vue": "Vue",
+    ".go": "Go",
+    ".rs": "Rust",
+    ".c": "C",
+    ".cc": "C++",
+    ".cpp": "C++",
+    ".cxx": "C++",
+    ".m": "Objective-C",
+    ".mm": "Objective-C++",
+    ".h": "C/C++",
+    ".hpp": "C++",
+    ".hxx": "C++",
+    ".cs": "C#",
+    ".php": "PHP",
+    ".rb": "Ruby",
+    ".kt": "Kotlin",
+    ".kts": "Kotlin",
+    ".swift": "Swift",
+    ".dart": "Dart",
+    ".scala": "Scala",
+    ".html": "HTML",
+    ".css": "CSS",
+    ".scss": "CSS",
+    ".less": "CSS",
+    ".xml": "XML",
+    ".md": "Markdown",
+    ".txt": "Text",
+    ".rst": "reStructuredText",
+    ".json": "JSON",
+    ".yaml": "YAML",
+    ".yml": "YAML",
+    ".toml": "TOML",
+    ".ini": "INI",
+    ".cfg": "Configuration",
+    ".properties": "Properties",
+    ".gradle": "Gradle",
+    ".sql": "SQL",
+    ".sh": "Shell",
+    ".bash": "Shell",
+    ".ps1": "PowerShell",
+    ".bat": "Batch",
+}
+
+
+def language_for_path(file_path: Path) -> str:
+    if file_path.name.lower() in SUPPORTED_FILENAMES:
+        return "Configuration"
+
+    return LANGUAGES_BY_EXTENSION.get(
+        file_path.suffix.lower(),
+        "Unknown",
+    )
 
 
 CODE_EXTENSIONS = {
     ".py",
     ".java",
     ".js",
+    ".mjs",
+    ".cjs",
     ".jsx",
     ".ts",
+    ".mts",
+    ".cts",
     ".tsx",
     ".go",
     ".rs",
     ".c",
+    ".cc",
     ".cpp",
+    ".cxx",
+    ".m",
+    ".mm",
     ".h",
     ".hpp",
+    ".hxx",
+    ".cs",
+    ".php",
+    ".rb",
+    ".kt",
+    ".kts",
+    ".swift",
+    ".dart",
+    ".scala",
+    ".html",
+    ".css",
+    ".scss",
+    ".less",
     ".sql",
 }
 
@@ -51,6 +174,7 @@ CODE_EXTENSIONS = {
 DOC_EXTENSIONS = {
     ".md",
     ".txt",
+    ".rst",
 }
 
 
@@ -398,7 +522,7 @@ def chunk_file(
     overlap: int = 10,
 ):
     """
-    Read a supported file and return chunk dictionaries.
+    Read a text file and return chunk dictionaries.
 
     Existing fields are preserved:
         content
@@ -413,9 +537,6 @@ def chunk_file(
     path = Path(file_path)
 
     extension = path.suffix.lower()
-
-    if extension not in SUPPORTED_EXTENSIONS:
-        return []
 
     try:
         content = path.read_text(
@@ -436,19 +557,7 @@ def chunk_file(
         raw_chunks = _markdown_chunks(content)
         chunk_type = "markdown"
 
-    elif extension in {
-        ".js",
-        ".jsx",
-        ".ts",
-        ".tsx",
-        ".java",
-        ".go",
-        ".rs",
-        ".c",
-        ".cpp",
-        ".h",
-        ".hpp",
-    }:
+    elif extension in CODE_EXTENSIONS:
         raw_chunks = _structural_code_chunks(
             content,
             extension,

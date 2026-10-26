@@ -72,10 +72,6 @@ def _normalize_repo_path(path: str) -> str:
     while normalized.startswith("./"):
         normalized = normalized[2:]
 
-    # Existing project code sometimes refers to paths from backend/.
-    if normalized.startswith("backend/"):
-        normalized = normalized[len("backend/"):]
-
     return normalized
 
 
@@ -84,7 +80,10 @@ def _is_sensitive_relative_path(relative_path: Path) -> bool:
     Reject environment files and private-key/certificate files.
     """
 
-    if relative_path.name.lower() in IGNORED_FILES:
+    if (
+        relative_path.name.lower() in IGNORED_FILES
+        or relative_path.name.lower().startswith(".env")
+    ):
         return True
 
     if relative_path.suffix.lower() in SENSITIVE_SUFFIXES:
@@ -102,7 +101,10 @@ def _is_sensitive_relative_path(relative_path: Path) -> bool:
     )
 
 
-def _resolve_repo_path(path: str) -> Path:
+def _resolve_repo_path(
+    path: str,
+    repo_root: str | Path = REPO_ROOT,
+) -> Path:
     """
     Resolve a user-supplied path and ensure it remains inside REPO_ROOT.
 
@@ -114,6 +116,7 @@ def _resolve_repo_path(path: str) -> Path:
     """
 
     normalized = _normalize_repo_path(path)
+    root = Path(repo_root).resolve()
 
     if not normalized:
         raise ValueError("Path cannot be empty.")
@@ -124,14 +127,27 @@ def _resolve_repo_path(path: str) -> Path:
         raise ValueError("Absolute paths are not allowed.")
 
     try:
-        resolved = (REPO_ROOT / candidate).resolve()
-        resolved.relative_to(REPO_ROOT)
+        resolved = (root / candidate).resolve()
+        resolved.relative_to(root)
     except ValueError as exc:
         raise ValueError(
             "Path must remain inside the repository."
         ) from exc
 
-    relative = resolved.relative_to(REPO_ROOT)
+    if not resolved.exists() and normalized.startswith("backend/"):
+        fallback = (root / normalized[len("backend/"):]).resolve()
+
+        try:
+            fallback.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(
+                "Path must remain inside the repository."
+            ) from exc
+
+        if fallback.exists():
+            resolved = fallback
+
+    relative = resolved.relative_to(root)
 
     if _is_sensitive_relative_path(relative):
         raise ValueError(
@@ -141,13 +157,17 @@ def _resolve_repo_path(path: str) -> Path:
     return resolved
 
 
-def _is_ignored_file(path: Path) -> bool:
+def _is_ignored_file(
+    path: Path,
+    repo_root: str | Path = REPO_ROOT,
+) -> bool:
     """
     Check whether a repository file should be excluded from search.
     """
 
     try:
-        relative = path.resolve().relative_to(REPO_ROOT)
+        root = Path(repo_root).resolve()
+        relative = path.resolve().relative_to(root)
     except ValueError:
         return True
 
@@ -160,7 +180,10 @@ def _is_ignored_file(path: Path) -> bool:
     )
 
 
-def _iter_repository_files(path_glob: str) -> List[Path]:
+def _iter_repository_files(
+    path_glob: str,
+    repo_root: str | Path = REPO_ROOT,
+) -> List[Path]:
     """
     Return safe files matching the requested repository glob.
     """
@@ -179,18 +202,19 @@ def _iter_repository_files(path_glob: str) -> List[Path]:
             "Parent-directory traversal is not allowed."
         )
 
+    root = Path(repo_root).resolve()
     files = []
 
-    for filepath in REPO_ROOT.glob(normalized_glob):
+    for filepath in root.glob(normalized_glob):
         if not filepath.is_file():
             continue
 
         try:
-            filepath.resolve().relative_to(REPO_ROOT)
+            filepath.resolve().relative_to(root)
         except ValueError:
             continue
 
-        if _is_ignored_file(filepath):
+        if _is_ignored_file(filepath, root):
             continue
 
         files.append(filepath)
@@ -201,6 +225,7 @@ def _iter_repository_files(path_glob: str) -> List[Path]:
 def grep_repo(
     pattern: str,
     path_glob: str = "**/*",
+    repo_root: str | Path = REPO_ROOT,
 ) -> List[Dict]:
     """
     Search current repository files for a regular-expression pattern.
@@ -232,7 +257,12 @@ def grep_repo(
 
     matches: List[Dict] = []
 
-    for filepath in _iter_repository_files(path_glob):
+    root = Path(repo_root).resolve()
+
+    for filepath in _iter_repository_files(
+        path_glob,
+        root,
+    ):
 
         try:
             with filepath.open(
@@ -250,7 +280,7 @@ def grep_repo(
                         continue
 
                     relative_path = filepath.relative_to(
-                        REPO_ROOT
+                        root
                     ).as_posix()
 
                     matched_text = line.rstrip("\r\n")
@@ -278,6 +308,7 @@ def read_file(
     path: str,
     line_start: int = 1,
     line_end: int | None = None,
+    repo_root: str | Path = REPO_ROOT,
 ) -> str:
     """
     Read exact lines from the current repository.
@@ -301,7 +332,10 @@ def read_file(
                 "line_end must be >= line_start."
             )
 
-    filepath = _resolve_repo_path(path)
+    filepath = _resolve_repo_path(
+        path,
+        repo_root,
+    )
 
     try:
         with filepath.open(
@@ -328,6 +362,7 @@ def read_file(
 def git_blame(
     path: str,
     line: int,
+    repo_root: str | Path = REPO_ROOT,
 ) -> dict:
     """
     Return Git blame information for one repository line.
@@ -348,10 +383,14 @@ def git_blame(
     if line < 1:
         raise ValueError("line must be >= 1.")
 
-    filepath = _resolve_repo_path(path)
+    root = Path(repo_root).resolve()
+    filepath = _resolve_repo_path(
+        path,
+        root,
+    )
 
     relative_path = filepath.relative_to(
-        REPO_ROOT
+        root
     ).as_posix()
 
     try:
@@ -359,7 +398,7 @@ def git_blame(
             [
                 "git",
                 "-C",
-                str(REPO_ROOT),
+                str(root),
                 "blame",
                 "-L",
                 f"{line},{line}",

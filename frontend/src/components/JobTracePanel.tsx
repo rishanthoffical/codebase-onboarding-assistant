@@ -1,7 +1,14 @@
+
 import React from 'react';
 
+interface ToolCall {
+  tool?: string;
+  reason?: string;
+  output?: string;
+}
+
 interface JobTracePanelProps {
-  toolCalls?: string[];
+  toolCalls?: Array<ToolCall | string>;
 }
 
 const JobTracePanel: React.FC<JobTracePanelProps> = ({
@@ -19,11 +26,45 @@ const JobTracePanel: React.FC<JobTracePanelProps> = ({
         <p>No tool calls yet.</p>
       ) : (
         <ul>
-          {safeToolCalls.map((call, index) => (
-            <li key={index}>
-              <strong>Tool:</strong> {call}
-            </li>
-          ))}
+          {safeToolCalls.map((call, index) => {
+            const toolName =
+              typeof call === 'string'
+                ? call
+                : call.tool;
+
+            const reason =
+              typeof call === 'string'
+                ? undefined
+                : call.reason;
+
+            const output =
+              typeof call === 'string'
+                ? undefined
+                : call.output;
+
+            return (
+              <li key={`${toolName || 'tool'}-${index}`}>
+                <div>
+                  <strong>Tool:</strong>{' '}
+                  {toolName || 'Unknown tool'}
+                </div>
+
+                {reason && (
+                  <div>
+                    <strong>Reason:</strong>{' '}
+                    {reason}
+                  </div>
+                )}
+
+                {output && (
+                  <div>
+                    <strong>Output:</strong>{' '}
+                    {output}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -31,3 +72,4 @@ const JobTracePanel: React.FC<JobTracePanelProps> = ({
 };
 
 export default JobTracePanel;
+

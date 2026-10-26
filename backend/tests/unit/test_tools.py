@@ -1,9 +1,9 @@
 import pytest
-from backend.app.tools.git_tools import grep_repo, read_file, git_blame
+from app.tools.git_tools import grep_repo, read_file, git_blame
 
 def test_grep_repo(mocker):
-    mocker.patch('backend.app.tools.git_tools.glob.glob', return_value=['file1.py', 'file2.py'])
-    mocker.patch('backend.app.tools.git_tools.subprocess.run', return_value=mocker.Mock(stdout='match found\n'))
+    mocker.patch('app.tools.git_tools.glob.glob', return_value=['file1.py', 'file2.py'])
+    mocker.patch('app.tools.git_tools.subprocess.run', return_value=mocker.Mock(stdout='match found\n'))
     
     result = grep_repo('match', '**/*.py')
     

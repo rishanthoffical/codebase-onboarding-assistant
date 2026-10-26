@@ -14,37 +14,24 @@ const RepoPicker: React.FC<RepoPickerProps> = ({
   onRepoChange,
   loading = false,
 }) => {
-  const safeRepos = Array.isArray(repos)
-    ? repos
-    : [];
+  const safeRepos = Array.isArray(repos) ? repos : [];
 
   return (
     <div className="repo-picker">
-      <label htmlFor="repo-select">
-        Repository
-      </label>
+      <label htmlFor="repo-select">Repository</label>
 
       <select
         id="repo-select"
         value={selectedRepo}
         disabled={loading}
-        onChange={(event) => {
-          onRepoChange?.(
-            event.target.value
-          );
-        }}
+        onChange={(event) => onRepoChange?.(event.target.value)}
       >
         {safeRepos.length === 0 ? (
-          <option value="local">
-            local
-          </option>
+          <option value="local">local</option>
         ) : (
           safeRepos.map((repo) => (
-            <option
-              key={repo.repo_id}
-              value={repo.repo_id}
-            >
-              {repo.name}
+            <option key={repo.repo_id} value={repo.repo_id}>
+              {repo.name} — {repo.repo_id.slice(0, 8)}
             </option>
           ))
         )}

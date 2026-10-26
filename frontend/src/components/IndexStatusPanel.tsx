@@ -1,52 +1,106 @@
 import React, { useEffect, useState } from 'react';
-import { getHealthStatus } from '../services/api';
+import {
+  getApiErrorMessage,
+  getHealthStatus,
+  getRepositoryIndexStatus,
+  getReadinessStatus,
+} from '../services/api';
 
 interface HealthStatus {
   status?: string;
   [key: string]: unknown;
 }
 
-const IndexStatusPanel: React.FC = () => {
+interface IndexStatusPanelProps {
+  repoId: string;
+  repoName?: string;
+}
+
+const IndexStatusPanel: React.FC<IndexStatusPanelProps> = ({
+  repoId,
+  repoName,
+}) => {
   const [healthStatus, setHealthStatus] =
     useState<HealthStatus | null>(null);
 
+  const [healthError, setHealthError] = useState('');
+  const [readinessStatus, setReadinessStatus] =
+    useState('Checking...');
+  const [repositoryStatus, setRepositoryStatus] =
+    useState('Checking...');
+  const [vectorIndexStatus, setVectorIndexStatus] =
+    useState('Checking...');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const fetchIndexStatus = async () => {
-    try {
-      setError('');
+    const [
+      healthResult,
+      readinessResult,
+      indexResult,
+    ] = await Promise.allSettled([
+      getHealthStatus(),
+      getReadinessStatus(),
+      getRepositoryIndexStatus(repoId),
+    ]);
 
-      const data = await getHealthStatus();
-
-      if (data && typeof data === 'object') {
-        setHealthStatus(data as HealthStatus);
-      } else {
-        setHealthStatus({
-          status: 'healthy',
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching backend health:', error);
-
-      setError('Unable to connect to backend.');
+    if (healthResult.status === 'fulfilled') {
+      setHealthStatus(healthResult.value);
+      setHealthError('');
+    } else {
       setHealthStatus(null);
-    } finally {
-      setLoading(false);
+      setHealthError(
+        getApiErrorMessage(
+          healthResult.reason,
+          'Backend health check failed.'
+        )
+      );
     }
+
+    if (readinessResult.status === 'fulfilled') {
+      setReadinessStatus(
+        readinessResult.value.status === 'ready'
+          ? 'Available'
+          : 'Not ready'
+      );
+    } else {
+      setReadinessStatus(
+        `Unavailable: ${getApiErrorMessage(
+          readinessResult.reason,
+          'Readiness check failed.'
+        )}`
+      );
+    }
+
+    if (indexResult.status === 'fulfilled') {
+      setRepositoryStatus(
+        indexResult.value.repository_status
+      );
+      setVectorIndexStatus(
+        `${indexResult.value.vector_count} vectors`
+      );
+    } else {
+      const message = getApiErrorMessage(
+        indexResult.reason,
+        'Repository index status check failed.'
+      );
+      setRepositoryStatus(`Unavailable: ${message}`);
+      setVectorIndexStatus('Unavailable');
+    }
+
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchIndexStatus();
+    void fetchIndexStatus();
 
     const interval = setInterval(() => {
-      fetchIndexStatus();
+      void fetchIndexStatus();
     }, 5000);
 
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [repoId]);
 
   return (
     <div className="index-status-panel">
@@ -56,23 +110,28 @@ const IndexStatusPanel: React.FC = () => {
         <p>Checking backend status...</p>
       )}
 
-      {!loading && error && (
-        <p>{error}</p>
-      )}
-
-      {!loading && !error && healthStatus && (
+      {!loading && (
         <div>
           <p>
             <strong>Backend:</strong>{' '}
-            {healthStatus.status || 'Healthy'}
+            {healthStatus?.status ||
+              (healthError ? `Unavailable (${healthError})` : 'Unavailable')}
           </p>
 
           <p>
-            <strong>Repository:</strong> local
+            <strong>Repository:</strong> {repoName || repoId}
           </p>
 
           <p>
-            <strong>Vector Index:</strong> Available
+            <strong>Indexing:</strong> {repositoryStatus}
+          </p>
+
+          <p>
+            <strong>Vector Index:</strong> {vectorIndexStatus}
+          </p>
+
+          <p>
+            <strong>Dependencies:</strong> {readinessStatus}
           </p>
         </div>
       )}

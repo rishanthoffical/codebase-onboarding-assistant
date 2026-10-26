@@ -155,45 +155,168 @@ SCOPE_KEYWORDS = {
 
 
 def scope_guardrail(question: str) -> bool:
+    """
+    Determine whether a user question is related to the repository.
+
+    The guardrail accepts explicit code identifiers, repository terminology,
+    and questions that clearly describe code implementation or behavior.
+    """
+
     question_lower = question.lower().strip()
 
-    # Explicit function/method/code references are always in scope.
-    if re.search(
-        r"\b(?:what does|what is|explain|describe|where is|which file)"
-        r"\b.*\b[a-zA-Z_][a-zA-Z0-9_]*\s*\(",
-        question_lower,
+    if not question_lower:
+        return False
+
+    # ---------------------------------------------------------
+    # 1. Explicit code identifiers
+    # ---------------------------------------------------------
+    identifiers = re.findall(
+        r"\b[A-Za-z_][A-Za-z0-9_]*\b",
+        question,
+    )
+
+    # snake_case identifiers:
+    #   incremental_test_function
+    #   scan_for_secrets
+    #   repo_update
+    if any(
+        "_" in identifier and len(identifier) >= 3
+        for identifier in identifiers
     ):
         return True
 
-    if re.search(
-        r"\b[a-zA-Z_][a-zA-Z0-9_]*\s+(?:do|does|mean|refer)\b",
-        question_lower,
+    # CamelCase/class-style identifiers:
+    #   RepositoryIndexer
+    #   ChatResponse
+    #   VectorStore
+    if any(
+        re.search(r"[a-z][A-Z]", identifier)
+        for identifier in identifiers
     ):
         return True
 
+    # ---------------------------------------------------------
+    # 2. Explicit function/method calls
+    # ---------------------------------------------------------
+    if re.search(
+        r"\b[A-Za-z_][A-Za-z0-9_]*\s*\(",
+        question,
+    ):
+        return True
+
+    # ---------------------------------------------------------
+    # 3. Existing repository scope keywords
+    # ---------------------------------------------------------
     words = re.findall(
         r"\b[a-zA-Z_]+\b",
         question_lower,
     )
 
-    return any(
+    if any(
         word in SCOPE_KEYWORDS
         for word in words
-    )
+    ):
+        return True
 
+    # ---------------------------------------------------------
+    # 4. Explicit repository/code terminology
+    # ---------------------------------------------------------
+    repository_patterns = [
+        r"\bcodebase\b",
+        r"\brepository\b",
+        r"\brepo\b",
+        r"\bsource\s+code\b",
+        r"\bsource\s+file\b",
+        r"\bcode\s+file\b",
+        r"\bproject\s+code\b",
+        r"\bbackend\b",
+        r"\bfrontend\b",
+        r"\bapi\b",
+        r"\bendpoint\b",
+        r"\broute\b",
+        r"\brouter\b",
+        r"\bservice\b",
+        r"\bmodule\b",
+        r"\bpackage\b",
+        r"\bcomponent\b",
+        r"\bclass\b",
+        r"\bfunction\b",
+        r"\bmethod\b",
+        r"\bfile\b",
+        r"\bimplementation\b",
+        r"\bimplemented\b",
+        r"\bcode\b",
+        r"\btest\b",
+        r"\btests\b",
+        r"\bbug\b",
+        r"\berror\b",
+        r"\bexception\b",
+        r"\bstack\s*trace\b",
+        r"\bdependency\b",
+        r"\bdependencies\b",
+    ]
+
+    if any(
+        re.search(pattern, question_lower)
+        for pattern in repository_patterns
+    ):
+        return True
+
+    # ---------------------------------------------------------
+    # 5. Code-specific question patterns
+    #
+    # These require a code-related noun so that questions such as
+    # "What is the weather today?" remain out of scope.
+    # ---------------------------------------------------------
+    code_question_patterns = [
+        r"\bwhere\s+is\b.*\b(?:function|method|class|file|module|code|implemented|defined)\b",
+        r"\bwhere\s+are\b.*\b(?:functions|methods|classes|files|modules)\b",
+        r"\bwhich\s+file\b",
+        r"\bwhich\s+class\b",
+        r"\bwhich\s+function\b",
+        r"\bwhich\s+method\b",
+        r"\bwhat\s+file\b",
+        r"\bwhat\s+class\b",
+        r"\bwhat\s+function\b",
+        r"\bwhat\s+method\b",
+        r"\bhow\s+does\b.*\b(?:code|function|method|class|api|service|system|repository|repo)\b",
+        r"\bhow\s+do\b.*\b(?:code|functions|methods|classes|apis|services)\b",
+        r"\bwhat\s+does\b.*\b(?:function|method|class|api|service|module|code)\b",
+        r"\bexplain\b.*\b(?:code|function|method|class|implementation|repository|repo|api|service)\b",
+        r"\bdescribe\b.*\b(?:code|function|method|class|implementation|repository|repo|api|service)\b",
+    ]
+
+    if any(
+        re.search(pattern, question_lower)
+        for pattern in code_question_patterns
+    ):
+        return True
+
+    # Accept common technical inquiry forms without requiring users to name
+    # a repository file or use a predefined technical term.
+    technical_inquiry_patterns = [
+        r"\bwhat\s+(?:is|are)\s+(?:(?:a|an)\s+)?"
+        r"[\w.-]+(?:\s+[\w.-]+){0,5}\??$",
+        r"\bwhat\s+does\b.+\bdo\??$",
+        r"\bwhat\b.+\bis\s+used\??$",
+        r"\bhow\s+does\b.+\bwork\??$",
+        r"\b(?:explain|describe|trace)\b.+",
+        r"\b[\w.-]+\.(?:py|pyi|js|jsx|ts|tsx|java|go|rs|cs|php|rb|"
+        r"kt|swift|cpp|c|h|sql|html|css|json|ya?ml|toml|md)\b",
+    ]
+
+    if any(
+        re.search(pattern, question_lower)
+        for pattern in technical_inquiry_patterns
+    ):
+        return True
+
+    return False
 
 def guardrail_pipeline(
     agent_output: str,
     question: str,
 ) -> Dict[str, Any]:
-
-    if not scope_guardrail(question):
-        return {
-            "output": "This question is off-topic.",
-            "warnings": [],
-            "is_safe": True,
-        }
-
     # Scan generated output for secrets.
     secret_result = scan_for_secrets(agent_output)
 
@@ -212,4 +335,3 @@ def guardrail_pipeline(
         "warnings": warnings,
         "is_safe": not warnings,
     }
-

@@ -6,8 +6,14 @@ import subprocess
 from pathlib import Path
 from typing import Iterable
 
-from app.indexer.chunker import chunk_file
-from app.indexer.diff import get_incremental_changes
+from app.guardrails.pipeline import scan_for_secrets
+from app.indexer.chunker import (
+    SUPPORTED_EXTENSIONS,
+    SUPPORTED_FILENAMES,
+    chunk_file,
+    language_for_path,
+)
+from app.indexer.diff import get_file_changes
 from app.services.vector_store import VectorStore
 
 
@@ -29,6 +35,8 @@ IGNORED_DIRECTORIES = {
     ".coverage",
     "htmlcov",
     "chroma_db",
+    "chroma_cache",
+    "uploaded_repositories",
     ".idea",
     ".vscode",
 }
@@ -82,6 +90,8 @@ BINARY_EXTENSIONS = {
     ".wav",
 }
 
+INDEX_BATCH_SIZE = 100
+
 
 class RepositoryIndexer:
     """
@@ -122,7 +132,8 @@ class RepositoryIndexer:
             return True
 
         return any(
-            part in IGNORED_DIRECTORIES
+            part.lower() in IGNORED_DIRECTORIES
+            or part.lower().startswith("chroma_db_backup")
             for part in relative.parts
         )
 
@@ -130,13 +141,23 @@ class RepositoryIndexer:
         """
         Exclude known secret/configuration and binary files.
         """
-        if path.name in IGNORED_FILE_NAMES:
+        file_name = path.name.lower()
+        if file_name in IGNORED_FILE_NAMES:
             return True
 
         if path.suffix.lower() in IGNORED_FILE_SUFFIXES:
             return True
 
-        if path.name.startswith(".env"):
+        if file_name.startswith(".env"):
+            return True
+
+        if (
+            ".backup" in file_name
+            or "-backup" in file_name
+            or "_backup" in file_name
+            or ".before-" in file_name
+            or file_name.endswith(".tmp")
+        ):
             return True
 
         return False
@@ -265,7 +286,16 @@ class RepositoryIndexer:
             if not path.is_file():
                 continue
 
+            if path.is_symlink():
+                continue
+
             if self._is_ignored_path(path):
+                continue
+
+            if (
+                path.suffix.lower() not in SUPPORTED_EXTENSIONS
+                and path.name.lower() not in SUPPORTED_FILENAMES
+            ):
                 continue
 
             if self._is_ignored_file(path):
@@ -468,18 +498,30 @@ class RepositoryIndexer:
         ):
             return None
 
+    @staticmethod
+    def _redact_secrets(content: str) -> str:
+        result = scan_for_secrets(content)
+        if result.found and result.redacted is not None:
+            return result.redacted
+        return content
+
     def _build_metadata(
         self,
         file_path: Path,
         chunk: dict,
         chunk_id: str,
         last_modified_commit: str | None,
+        chunk_index: int,
     ) -> dict:
         relative_path = file_path.relative_to(
             self.repo_path
         ).as_posix()
 
-        content = chunk["content"]
+        content = self._redact_secrets(chunk["content"])
+        chunk = {
+            **chunk,
+            "content": content,
+        }
 
         doc_type = self._get_doc_type(
             file_path,
@@ -490,6 +532,8 @@ class RepositoryIndexer:
             # New canonical metadata
             "repo_id": self.repo_id,
             "file_path": relative_path,
+            "language": language_for_path(file_path),
+            "chunk_index": chunk_index,
             "line_start": int(chunk["start_line"]),
             "line_end": int(chunk["end_line"]),
             "last_modified_commit": (
@@ -517,9 +561,31 @@ class RepositoryIndexer:
         documents: list[str] = []
         ids: list[str] = []
         metadatas: list[dict] = []
+        chunks_created = 0
 
+        def flush_batch() -> None:
+            nonlocal documents, ids, metadatas
+            if not documents:
+                return
+            self.vector_store.add_documents(
+                documents=documents,
+                ids=ids,
+                metadatas=metadatas,
+            )
+            documents = []
+            ids = []
+            metadatas = []
+
+        discovered_files = [
+            path
+            for path in self.repo_path.rglob("*")
+            if path.is_file()
+            and not path.is_symlink()
+            and not self._is_ignored_path(path)
+        ] if self.repo_path.exists() else []
         files = self.get_files()
         current_commit = self.get_current_commit()
+        indexed_files: set[Path] = set()
 
         for file_path in files:
             chunks = chunk_file(
@@ -532,10 +598,9 @@ class RepositoryIndexer:
                 )
             )
 
-            for chunk in chunks:
-                content = chunk.get(
-                    "content",
-                    "",
+            for chunk_index, chunk in enumerate(chunks):
+                content = self._redact_secrets(
+                    chunk.get("content", "")
                 )
 
                 if not content.strip():
@@ -558,6 +623,8 @@ class RepositoryIndexer:
 
                 documents.append(content)
                 ids.append(chunk_id)
+                indexed_files.add(file_path)
+                chunks_created += 1
 
                 metadatas.append(
                     self._build_metadata(
@@ -568,20 +635,27 @@ class RepositoryIndexer:
                             last_modified_commit
                             or current_commit
                         ),
+                        chunk_index=chunk_index,
                     )
                 )
 
-        if documents:
-            self.vector_store.add_documents(
-                documents=documents,
-                ids=ids,
-                metadatas=metadatas,
-            )
+                if len(documents) >= INDEX_BATCH_SIZE:
+                    flush_batch()
+
+        flush_batch()
 
         return {
             "repo_id": self.repo_id,
             "files": len(files),
-            "chunks": len(documents),
+            "files_discovered": len(discovered_files),
+            "files_indexed": len(indexed_files),
+            "files_skipped": max(
+                0,
+                len(discovered_files) - len(indexed_files),
+            ),
+            "chunks": chunks_created,
+            "chunks_created": chunks_created,
+            "vectors_created": chunks_created,
             "commit": current_commit,
         }
 
@@ -597,13 +671,22 @@ class RepositoryIndexer:
         """
         Incrementally update the vector store using Git changes.
 
-        NEW files are indexed.
-        MODIFIED files have their old vectors removed and are re-indexed.
-        DELETED files have their vectors removed.
-        RENAMED files are handled by deleting the old path and indexing
-        the new path.
-        COPIED files are indexed as new files.
+        NEW:
+            Index the new file.
+
+        MODIFIED:
+            Delete existing vectors and re-index the file.
+
+        DELETED:
+            Delete existing vectors.
+
+        RENAMED:
+            Delete vectors for the old path and index the new path.
+
+        COPIED:
+            Keep the original vectors and index the new path.
         """
+
         if head_commit is None:
             head_commit = self.get_current_commit()
 
@@ -615,68 +698,124 @@ class RepositoryIndexer:
                 "new_files": 0,
                 "modified_files": 0,
                 "deleted_files": 0,
+                "renamed_files": 0,
+                "copied_files": 0,
                 "files_processed": 0,
                 "chunks_added": 0,
                 "vectors_deleted": 0,
             }
 
-        changes = get_incremental_changes(
+        changes = get_file_changes(
             base_commit=base_commit,
             head_commit=head_commit,
         )
 
-        new_files = changes.get(
-            "NEW",
-            [],
-        )
-
-        modified_files = changes.get(
-            "MODIFIED",
-            [],
-        )
-
-        deleted_files = changes.get(
-            "DELETED",
-            [],
-        )
-
-        files_to_index = [
-            *new_files,
-            *modified_files,
+        new_changes = [
+            change
+            for change in changes
+            if change.status == "NEW"
         ]
 
-        files_to_delete = [
-            *deleted_files,
-            *modified_files,
+        modified_changes = [
+            change
+            for change in changes
+            if change.status == "MODIFIED"
+        ]
+
+        deleted_changes = [
+            change
+            for change in changes
+            if change.status == "DELETED"
+        ]
+
+        renamed_changes = [
+            change
+            for change in changes
+            if change.status == "RENAMED"
+        ]
+
+        copied_changes = [
+            change
+            for change in changes
+            if change.status == "COPIED"
         ]
 
         deleted_vectors = 0
 
-        # --------------------------------------------------------------
-        # Remove old vectors
-        # --------------------------------------------------------------
+        # ---------------------------------------------------------
+        # DELETE
+        # ---------------------------------------------------------
 
-        for relative_path in files_to_delete:
+        for change in deleted_changes:
             deleted_vectors += (
                 self.vector_store.delete_by_file(
-                    file_path=relative_path,
+                    file_path=change.file_path,
                     repo_id=self.repo_id,
                 )
             )
 
-        # --------------------------------------------------------------
-        # Index new and modified files
-        # --------------------------------------------------------------
+        # ---------------------------------------------------------
+        # MODIFY
+        # ---------------------------------------------------------
+
+        for change in modified_changes:
+            deleted_vectors += (
+                self.vector_store.delete_by_file(
+                    file_path=change.file_path,
+                    repo_id=self.repo_id,
+                )
+            )
+
+        # ---------------------------------------------------------
+        # RENAME
+        #
+        # Delete vectors belonging to the old path.
+        # The new path will be indexed below.
+        # ---------------------------------------------------------
+
+        for change in renamed_changes:
+            if change.old_path:
+                deleted_vectors += (
+                    self.vector_store.delete_by_file(
+                        file_path=change.old_path,
+                        repo_id=self.repo_id,
+                    )
+                )
+
+            # Defensive cleanup if the new path already exists
+            # in the vector store.
+            deleted_vectors += (
+                self.vector_store.delete_by_file(
+                    file_path=change.file_path,
+                    repo_id=self.repo_id,
+                )
+            )
+
+        # ---------------------------------------------------------
+        # COPY
+        #
+        # Do NOT delete the original path.
+        # Only index the new path.
+        # ---------------------------------------------------------
+
+        files_to_index = [
+            *new_changes,
+            *modified_changes,
+            *renamed_changes,
+            *copied_changes,
+        ]
 
         chunks_added = 0
         files_processed = 0
 
-        for relative_path in files_to_index:
+        for change in files_to_index:
+            relative_path = change.file_path
+
             file_path = (
                 self.repo_path / relative_path
             ).resolve()
 
-            # Prevent paths from escaping the repository.
+            # Prevent path traversal.
             try:
                 file_path.relative_to(
                     self.repo_path
@@ -684,14 +823,12 @@ class RepositoryIndexer:
             except ValueError:
                 continue
 
-            # The file may no longer exist.
             if not file_path.exists():
                 continue
 
             if not file_path.is_file():
                 continue
 
-            # Apply the same safety filters used by full indexing.
             if self._is_ignored_path(file_path):
                 continue
 
@@ -715,10 +852,9 @@ class RepositoryIndexer:
             ids: list[str] = []
             metadatas: list[dict] = []
 
-            for chunk in chunks:
-                content = chunk.get(
-                    "content",
-                    "",
+            for chunk_index, chunk in enumerate(chunks):
+                content = self._redact_secrets(
+                    chunk.get("content", "")
                 )
 
                 if not content.strip():
@@ -747,6 +883,7 @@ class RepositoryIndexer:
                             last_modified_commit
                             or head_commit
                         ),
+                        chunk_index=chunk_index,
                     )
                 )
 
@@ -765,9 +902,11 @@ class RepositoryIndexer:
             "repo_id": self.repo_id,
             "base_commit": base_commit,
             "head_commit": head_commit,
-            "new_files": len(new_files),
-            "modified_files": len(modified_files),
-            "deleted_files": len(deleted_files),
+            "new_files": len(new_changes),
+            "modified_files": len(modified_changes),
+            "deleted_files": len(deleted_changes),
+            "renamed_files": len(renamed_changes),
+            "copied_files": len(copied_changes),
             "files_processed": files_processed,
             "chunks_added": chunks_added,
             "vectors_deleted": deleted_vectors,

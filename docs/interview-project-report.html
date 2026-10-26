@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codebase Onboarding Assistant | Interview Guide</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 15mm 15mm;
+    }
+
+    :root {
+      --ink: #19383a;
+      --muted: #53686a;
+      --teal: #12666b;
+      --teal-light: #e7f2f0;
+      --blue: #326b92;
+      --blue-light: #eaf1f7;
+      --coral: #bc5b41;
+      --coral-light: #fbefe9;
+      --gold: #bd8619;
+      --gold-light: #fbf5e3;
+      --line: #cbd7d5;
+      --paper: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      font-size: 10pt;
+      line-height: 1.48;
+    }
+
+    .page {
+      position: relative;
+      min-height: 267mm;
+      padding-bottom: 12mm;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    .page-footer {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: flex;
+      justify-content: space-between;
+      padding-top: 5px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 8pt;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--teal);
+      font-size: 8.5pt;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.15;
+    }
+
+    h1 {
+      max-width: 165mm;
+      margin-bottom: 12px;
+      color: var(--ink);
+      font-size: 34pt;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin-bottom: 7px;
+      color: var(--ink);
+      font-size: 21pt;
+    }
+
+    h3 {
+      margin-bottom: 5px;
+      color: var(--teal);
+      font-size: 13pt;
+    }
+
+    p { margin-bottom: 8px; }
+
+    code {
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #edf2f1;
+      color: #24494b;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 8.5pt;
+      overflow-wrap: anywhere;
+    }
+
+    .lead {
+      max-width: 165mm;
+      color: var(--muted);
+      font-size: 13pt;
+      line-height: 1.5;
+    }
+
+    .cover-band {
+      margin: 20mm 0 11mm;
+      padding: 17mm 15mm;
+      border-left: 7px solid var(--coral);
+      background: var(--teal-light);
+    }
+
+    .cover-band p:last-child { margin-bottom: 0; }
+
+    .cover-meta {
+      display: flex;
+      gap: 8px;
+      margin-top: 12mm;
+      color: var(--muted);
+      font-size: 9pt;
+    }
+
+    .pill {
+      display: inline-block;
+      margin: 0 5px 5px 0;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 8pt;
+      font-weight: 600;
+    }
+
+    .section-intro {
+      max-width: 175mm;
+      margin-bottom: 12px;
+      color: var(--muted);
+    }
+
+    .diagram-wrap {
+      margin: 12px 0 9px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfdfc;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .diagram-caption {
+      margin: 8px 2px 0;
+      color: var(--muted);
+      font-size: 8.5pt;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+    }
+
+    .panel {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--teal);
+      border-radius: 5px;
+      background: #fff;
+      break-inside: avoid;
+    }
+
+    .panel.blue { border-top-color: var(--blue); }
+    .panel.coral { border-top-color: var(--coral); }
+    .panel.gold { border-top-color: var(--gold); }
+
+    .panel p:last-child,
+    .panel ul:last-child { margin-bottom: 0; }
+
+    .stack-table {
+      width: 100%;
+      margin: 12px 0;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+
+    .stack-table th {
+      padding: 8px;
+      background: var(--teal);
+      color: #fff;
+      text-align: left;
+    }
+
+    .stack-table td {
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    .stack-table tr:nth-child(even) td { background: #f4f8f7; }
+
+    .stack-table td:first-child {
+      width: 29%;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin: 11px 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: flow;
+    }
+
+    .steps li {
+      position: relative;
+      min-height: 48px;
+      padding: 9px 9px 9px 38px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #fff;
+      counter-increment: flow;
+      break-inside: avoid;
+    }
+
+    .steps li::before {
+      position: absolute;
+      top: 9px;
+      left: 9px;
+      display: grid;
+      width: 21px;
+      height: 21px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--teal);
+      color: #fff;
+      content: counter(flow);
+      font-size: 8pt;
+      font-weight: 700;
+    }
+
+    .quote {
+      padding: 12px 14px;
+      border-left: 4px solid var(--coral);
+      background: var(--coral-light);
+      font-size: 10.5pt;
+    }
+
+    .callout {
+      margin: 10px 0;
+      padding: 9px 11px;
+      border-left: 4px solid var(--gold);
+      background: var(--gold-light);
+      color: #4c401f;
+      font-size: 9pt;
+    }
+
+    ul.compact {
+      margin: 5px 0 0;
+      padding-left: 17px;
+    }
+
+    ul.compact li { margin: 3px 0; }
+
+    .small { color: var(--muted); font-size: 8.5pt; }
+
+    .answer-block {
+      margin: 10px 0;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #fbfdfc;
+      break-inside: avoid;
+    }
+
+    .answer-block strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--teal);
+    }
+
+    .core-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin: 12px 0;
+    }
+
+    .core-grid .panel {
+      min-height: 94px;
+    }
+
+    .core-grid .panel p {
+      margin-bottom: 0;
+      font-size: 9pt;
+    }
+
+    .core-sequence {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin: 12px 0;
+    }
+
+    .core-sequence div {
+      padding: 8px;
+      border-radius: 4px;
+      background: var(--teal-light);
+      color: var(--ink);
+      font-size: 8.5pt;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .refs {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 8pt;
+    }
+
+    @media screen {
+      body { max-width: 900px; margin: 24px auto; padding: 0 22px; }
+      .page { min-height: 0; padding: 28px 0 42px; }
+      .page + .page { border-top: 2px solid var(--line); }
+      .page-footer { position: static; margin-top: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <p class="eyebrow">Interview briefing · Project explanation</p>
+    <h1>My Codebase<br>Onboarding Assistant</h1>
+    <p class="lead">A source-grounded assistant that helps developers understand an unfamiliar repository by indexing its files, retrieving relevant code, and answering questions with citations.</p>
+
+    <div class="cover-band">
+      <p class="eyebrow">The 20-second version</p>
+      <p><strong>I built a codebase Q&amp;A and onboarding tool.</strong> FastAPI accepts projects and questions, Celery/Redis run indexing in the background, and Chroma powers repository-scoped RAG. A bounded tool-using agent can inspect files when retrieval is not enough, while guardrails check scope, paths, and model-bound tool output. The result is a cited answer grounded in the selected codebase.</p>
+    </div>
+
+    <h3>What it is designed to solve</h3>
+    <p>Joining an unfamiliar codebase often means manually hunting through entry points, routes, configuration, dependencies, and execution paths. This project gives an engineer one place to ask those questions in plain language and receive an answer linked back to repository files.</p>
+
+    <div style="margin-top: 13mm">
+      <span class="pill">Repository onboarding</span>
+      <span class="pill">RAG search</span>
+      <span class="pill">Async indexing</span>
+      <span class="pill">Cited answers</span>
+      <span class="pill">Multi-repository</span>
+      <span class="pill">Security guardrails</span>
+    </div>
+
+    <div class="cover-meta">
+      <span>Prepared as an interview speaking guide</span>
+      <span>·</span>
+      <span>Codebase verified: my-codebase-onboarding-assistant-2</span>
+    </div>
+    <div class="page-footer"><span>MY CODEBASE ONBOARDING ASSISTANT</span><span>INTERVIEW GUIDE</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">01 · System design</p>
+    <h2>How the application works</h2>
+    <p class="section-intro">The system separates the interactive API from slower indexing work. The API accepts uploads and questions; Celery processes repositories in the background; Chroma stores searchable chunks; the agent uses retrieved context and repository tools to form an answer.</p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 1100 610" role="img" aria-labelledby="diagramTitle diagramDesc" xmlns="http://www.w3.org/2000/svg">
+        <title id="diagramTitle">Codebase Onboarding Assistant architecture</title>
+        <desc id="diagramDesc">React frontend connects to FastAPI. FastAPI queues indexing through Redis to Celery, which indexes repository chunks into Chroma. For questions, FastAPI retrieves repository-scoped context from Chroma, calls Ollama or Claude, and returns a cited answer to the frontend.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#53686a"/></marker>
+          <marker id="arrowTeal" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#12666b"/></marker>
+          <style>
+            .box { stroke-width: 2; rx: 13; }
+            .label { font: 700 22px 'Segoe UI', sans-serif; fill: #19383a; }
+            .sub { font: 16px 'Segoe UI', sans-serif; fill: #53686a; }
+            .edge { fill: none; stroke: #53686a; stroke-width: 3; marker-end: url(#arrow); }
+            .query { fill: none; stroke: #12666b; stroke-width: 3; stroke-dasharray: 8 6; marker-end: url(#arrowTeal); }
+            .edge-label { font: 14px 'Segoe UI', sans-serif; fill: #53686a; }
+          </style>
+        </defs>
+
+        <rect x="15" y="15" width="1070" height="580" rx="16" fill="#ffffff" stroke="#cbd7d5"/>
+        <text x="48" y="53" class="edge-label">REQUEST / CHAT LAYER</text>
+        <text x="48" y="330" class="edge-label">ASYNC INDEXING / PERSISTENT SEARCH</text>
+
+        <rect class="box" x="45" y="95" width="225" height="125" fill="#e7f2f0" stroke="#12666b"/>
+        <text class="label" x="70" y="133">React + TypeScript</text>
+        <text class="sub" x="70" y="163">Upload ZIP / files / folder</text>
+        <text class="sub" x="70" y="190">Chat UI and citations</text>
+
+        <rect class="box" x="360" y="95" width="245" height="125" fill="#eaf1f7" stroke="#326b92"/>
+        <text class="label" x="385" y="133">FastAPI</text>
+        <text class="sub" x="385" y="163">Upload, chat, status APIs</text>
+        <text class="sub" x="385" y="190">Validation and routing</text>
+
+        <rect class="box" x="760" y="95" width="280" height="125" fill="#fbefe9" stroke="#bc5b41"/>
+        <text class="label" x="785" y="133">Ollama / Claude</text>
+        <text class="sub" x="785" y="163">Grounded answer generation</text>
+        <text class="sub" x="785" y="190">Optional tool calls</text>
+
+        <rect class="box" x="360" y="390" width="190" height="105" fill="#fbf5e3" stroke="#bd8619"/>
+        <text class="label" x="385" y="430">Redis</text>
+        <text class="sub" x="385" y="460">Queue / cache / history</text>
+
+        <rect class="box" x="600" y="390" width="220" height="105" fill="#e7f2f0" stroke="#12666b"/>
+        <text class="label" x="625" y="430">Celery worker</text>
+        <text class="sub" x="625" y="460">RepositoryIndexer</text>
+
+        <rect class="box" x="870" y="390" width="185" height="105" fill="#eaf1f7" stroke="#326b92"/>
+        <text class="label" x="895" y="430">Chroma</text>
+        <text class="sub" x="895" y="460">Persistent vectors</text>
+
+        <path class="edge" d="M270 155 L360 155"/>
+        <text class="edge-label" x="280" y="142">upload / question</text>
+
+        <path class="edge" d="M605 145 L760 145"/>
+        <text class="edge-label" x="625" y="132">context + prompt</text>
+        <path class="edge" d="M760 188 L605 188"/>
+        <text class="edge-label" x="635" y="211">answer</text>
+
+        <path class="edge" d="M480 220 L480 390"/>
+        <text class="edge-label" x="490" y="300">enqueue job</text>
+        <path class="edge" d="M550 442 L600 442"/>
+        <text class="edge-label" x="552" y="428">task</text>
+        <path class="edge" d="M820 442 L870 442"/>
+        <text class="edge-label" x="820" y="428">chunks</text>
+
+        <path class="query" d="M385 220 L385 285 L955 285 L955 390"/>
+        <text class="edge-label" x="610" y="274">repo_id-scoped vector search / results</text>
+      </svg>
+      <p class="diagram-caption">Solid arrows show upload/index and model request paths. The dashed arrow represents repository-scoped retrieval for a question. Redis also backs chat history and response caching; Docker Compose runs the services together.</p>
+    </div>
+
+    <ol class="steps">
+      <li><strong>Receive:</strong> the frontend sends a ZIP or raw file; folders and multiple files are packaged into a ZIP in the browser.</li>
+      <li><strong>Queue:</strong> FastAPI validates the upload, stores it on a volume shared with Celery, registers a repository ID, and queues indexing.</li>
+      <li><strong>Index:</strong> Celery scans eligible files, chunks text, attaches file/line/repository metadata, and writes chunks to Chroma.</li>
+      <li><strong>Answer:</strong> questions retrieve relevant chunks for that repository, then the agent generates a response with file citations.</li>
+    </ol>
+    <div class="page-footer"><span>MY CODEBASE ONBOARDING ASSISTANT</span><span>01 · SYSTEM DESIGN</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">02 · Technology choices</p>
+    <h2>Major technology stack</h2>
+    <p class="section-intro">Each technology has a clear job: web interaction, API orchestration, background processing, semantic retrieval, or answer generation.</p>
+
+    <table class="stack-table">
+      <thead><tr><th>Layer</th><th>Technology</th><th>Role in this project</th></tr></thead>
+      <tbody>
+        <tr><td>Frontend</td><td>React 18, TypeScript, Vite</td><td>Repository picker, ZIP/file/folder intake, chat interface, progress and citations. Axios calls the API; <code>fflate</code> packages folder selections into ZIP.</td></tr>
+        <tr><td>Backend API</td><td>Python, FastAPI, Uvicorn</td><td>Exposes chat, upload, repository, job-status, health, and webhook endpoints. Pydantic-based settings and request models support configuration and validation.</td></tr>
+        <tr><td>Background jobs</td><td>Celery + Redis</td><td>Long indexing work runs outside the request/response path. Redis brokers tasks and also supports chat history and answer caching.</td></tr>
+        <tr><td>Vector retrieval</td><td>ChromaDB</td><td>Persistent vector collection stores chunks with repository ID, file path, line range, and other metadata. Search filters by repository ID.</td></tr>
+        <tr><td>Answer models</td><td>Ollama / Claude</td><td>Provider selection is configurable. Ollama is the default and uses the configured local model (default <code>gemma4:26b</code>); Claude is an API-backed option.</td></tr>
+        <tr><td>Code intelligence</td><td>GitPython, Git CLI</td><td>Reads commit metadata and supports incremental indexing for Git updates; webhook handling can queue repository refreshes.</td></tr>
+        <tr><td>Deployment</td><td>Docker Compose</td><td>Runs frontend, API, Redis, Celery worker, and Celery Beat with shared repository, upload, and vector-store volumes.</td></tr>
+        <tr><td>Quality</td><td>Pytest</td><td>Unit and integration tests cover indexing, repository tools, uploads, security, and webhook behavior.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout"><strong>Accurate embedding explanation:</strong> the codebase contains an <code>EmbeddingProvider</code> helper using Sentence Transformers and <code>all-MiniLM-L6-v2</code>. The active <code>RepositoryIndexer</code> calls Chroma's collection API directly and does not call that helper; describe Sentence Transformers as an included helper/dependency, not as a separately invoked stage in the active indexing loop.</div>
+
+    <div class="two-col">
+      <div class="panel blue">
+        <h3>API process: <code>backend/app/main.py</code></h3>
+        <p>Creates the FastAPI object, configures CORS/logging, mounts the main API router and webhook router, and defines health/readiness endpoints plus startup/shutdown hooks. Uvicorn launches it as <code>app.main:app</code>.</p>
+      </div>
+      <div class="panel coral">
+        <h3>UI composition: <code>frontend/src/App.tsx</code></h3>
+        <p>Loads repositories, manages the selected project and upload state, polls indexing status, triggers the overview question, and composes the repository picker, intake panel, chat, status, and job trace components.</p>
+      </div>
+    </div>
+
+    <div class="callout"><strong>About “app.py”:</strong> there is no backend <code>app.py</code> in the active project. If an interviewer asks what <code>app.py</code> does, clarify that this project uses <code>backend/app/main.py</code> for backend startup and <code>frontend/src/App.tsx</code> for the frontend's top-level UI.</div>
+    <div class="page-footer"><span>MY CODEBASE ONBOARDING ASSISTANT</span><span>02 · TECHNOLOGY STACK</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">03 · Core architecture</p>
+    <h2>How the five core technologies fit</h2>
+    <p class="section-intro">These are connected responsibilities, not isolated buzzwords: FastAPI coordinates requests, Celery handles long-running indexing, RAG supplies relevant project evidence, the agent chooses bounded tools, and guardrails constrain unsafe inputs and outputs.</p>
+
+    <div class="core-grid">
+      <div class="panel blue">
+        <h3>FastAPI · API and orchestration</h3>
+        <p><code>backend/app/main.py</code> starts the service. Routers accept uploads and chat, validate repository IDs, queue work, expose job status, and stream answers to the React client.</p>
+      </div>
+      <div class="panel">
+        <h3>RAG · evidence retrieval</h3>
+        <p>The indexer chunks eligible text and stores it with file, line, and <code>repo_id</code> metadata in Chroma. Each question retrieves the closest chunks from only the selected repository; the answer is generated from that context.</p>
+      </div>
+      <div class="panel coral">
+        <h3>Agentic AI · bounded tool use</h3>
+        <p>One agent coordinates the LLM and tools: repository grep, line-range file reads, and Git blame. When context is insufficient, the provider may request a tool; execution is bounded to at most four iterations. This is tool-using agentic AI, not a multi-agent team.</p>
+      </div>
+      <div class="panel gold">
+        <h3>Celery + Redis · background work</h3>
+        <p>FastAPI enqueues indexing instead of blocking on it. A Celery worker scans and indexes the uploaded project; Redis carries jobs and also supports job state, chat history, and response caching.</p>
+      </div>
+      <div class="panel">
+        <h3>Guardrails · safer boundaries</h3>
+        <p>Scope checks keep chat code-focused; upload/path checks reject unsafe entries; file discovery excludes secrets and binaries; tool output is scanned and redacted before it is sent to the LLM. Responses are checked before returning to the user.</p>
+      </div>
+      <div class="panel blue">
+        <h3>Chroma + Ollama / Claude</h3>
+        <p>Chroma persists searchable vectors. The provider setting selects local Ollama (default) or Claude. Provider prompts require repository evidence and exact file paths instead of invented claims.</p>
+      </div>
+    </div>
+
+    <h3>One complete request path</h3>
+    <div class="core-sequence">
+      <div>FastAPI receives<br>project upload</div>
+      <div>Celery indexes<br>repository chunks</div>
+      <div>Chroma retrieves<br>matching evidence</div>
+      <div>Agent uses tools<br>only if needed</div>
+      <div>Guardrails scan<br>tool evidence</div>
+      <div>LLM writes a<br>cited answer</div>
+      <div>FastAPI streams<br>the response</div>
+      <div>React displays<br>answer + sources</div>
+    </div>
+
+    <div class="quote">
+      <p><strong>How I would describe the design choice</strong></p>
+      <p>“I separated the system into a request layer and a background indexing layer. RAG keeps answers tied to the right repository, and the agent can inspect source files when retrieval alone is not enough. I bounded those tool calls and added guardrails around uploaded paths and model context, so the system is useful without treating repository content as trusted instructions.”</p>
+    </div>
+
+    <div class="callout"><strong>Accuracy note:</strong> this project has one tool-using agent loop with a maximum of four tool iterations. It should be presented as an agentic workflow, not as multiple collaborating AI agents.</div>
+    <div class="page-footer"><span>MY CODEBASE ONBOARDING ASSISTANT</span><span>03 · CORE ARCHITECTURE</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">04 · Request lifecycle</p>
+    <h2>From upload to an answer</h2>
+    <p class="section-intro">Indexing and question answering are separate paths. This keeps large repositories from blocking the browser request and gives every vector a repository identity.</p>
+
+    <div class="two-col">
+      <div class="panel">
+        <h3>A. Project intake and indexing</h3>
+        <ul class="compact">
+          <li>User chooses one file, several files, a folder, or a ZIP.</li>
+          <li>The browser converts folders/files to a ZIP while retaining relative paths.</li>
+          <li>FastAPI validates paths, size, and archive members; it ignores unsafe entries and unsupported archive formats.</li>
+          <li>The archive is stored under the shared upload volume and registered with a unique <code>repo_id</code>.</li>
+          <li>Celery runs <code>RepositoryIndexer</code> asynchronously and reports job state through Redis.</li>
+          <li>Eligible text files are chunked; Chroma stores chunks and source metadata for later retrieval.</li>
+        </ul>
+      </div>
+      <div class="panel blue">
+        <h3>B. Question and answer</h3>
+        <ul class="compact">
+          <li>The frontend sends the question with the selected <code>repo_id</code>.</li>
+          <li>The agent searches Chroma for relevant chunks, scoped to that repository.</li>
+          <li>If needed, the model can call repository-root-scoped grep/read/Git tools.</li>
+          <li>Tool output is scanned for secrets and insecure patterns before reaching the model.</li>
+          <li>The configured Ollama or Claude provider writes an evidence-based answer.</li>
+          <li>The API streams the response, citations, and tool trace back to the UI.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="margin-top: 14px">Why this design is useful</h3>
+    <div class="three-col">
+      <div class="panel"><h3>Grounded answers</h3><p>Answers use retrieved repository chunks and can cite their source paths and line ranges.</p></div>
+      <div class="panel gold"><h3>Responsive intake</h3><p>Celery handles indexing in the background; the UI can poll status while the API remains available.</p></div>
+      <div class="panel coral"><h3>Repository isolation</h3><p>Vectors and direct file tools are scoped to the selected repo, preventing one project's context from being used for another.</p></div>
+    </div>
+
+    <h3 style="margin-top: 14px">Trust and safety</h3>
+    <p>Repository scanning excludes common generated folders, binary files, and sensitive files. ZIP extraction rejects traversal and symlink entries. Direct tools constrain paths to a repository root. The LLM tool pipeline sanitizes tool output and redacts detected secrets before adding it to model context.</p>
+
+    <div class="callout"><strong>Useful distinction:</strong> semantic retrieval supplies the first context; it is not the whole repository pasted into the prompt. The current agent retrieves five top-ranked chunks initially and may use up to four tool iterations for supported providers when it needs more evidence.</div>
+    <div class="page-footer"><span>MY CODEBASE ONBOARDING ASSISTANT</span><span>04 · REQUEST LIFECYCLE</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">05 · Interview practice</p>
+    <h2>How to explain what you built</h2>
+
+    <div class="quote">
+      <p><strong>One-minute answer</strong></p>
+      <p>“I built a codebase onboarding assistant to reduce the time developers spend figuring out an unfamiliar project. Users can upload a code file or project archive/folder, and the backend indexes its readable files asynchronously. I store chunks with file and repository metadata in Chroma, retrieve relevant context for each question, and use an LLM to produce a concise answer with citations. FastAPI handles the API, Celery and Redis keep indexing off the request path, and the React/TypeScript frontend provides the upload and chat experience. I also added repository isolation and security checks so tool reads stay inside the selected project and sensitive output is filtered before it reaches the model.”</p>
+    </div>
+
+    <h3 style="margin-top: 14px">“How did you build it?”</h3>
+    <ol class="steps">
+      <li><strong>Define the workflow:</strong> select a project, index it, ask a question, and see source-backed answers.</li>
+      <li><strong>Build the service boundary:</strong> use FastAPI for repository, upload, chat, and job-status endpoints.</li>
+      <li><strong>Make indexing asynchronous:</strong> put Celery and Redis between uploads and expensive indexing work.</li>
+      <li><strong>Add retrieval:</strong> discover files, filter unsafe/unhelpful content, chunk text, and store repository-scoped vectors.</li>
+      <li><strong>Ground the assistant:</strong> retrieve evidence, allow bounded file tools, add citations, and support configurable LLM providers.</li>
+      <li><strong>Harden and test:</strong> add path/archive validation, secret scanning, cache/history isolation, and focused tests.</li>
+    </ol>
+    <p class="small">Present this as the architecture and engineering approach you implemented; adjust the order if your actual development timeline differed.</p>
+
+    <div class="two-col" style="margin-top: 12px">
+      <div class="panel gold">
+        <h3>Major advantage</h3>
+        <p>It combines repository-specific retrieval, direct code tools, citations, asynchronous indexing, and multi-repository isolation in one onboarding workflow. The model is guided by the selected source rather than being asked to guess from a generic prompt.</p>
+      </div>
+      <div class="panel coral">
+        <h3>Trade-offs to acknowledge</h3>
+        <p>Retrieval quality depends on chunking and the top-five initial search; ambiguous questions may need follow-up. RAR/7z archives must be extracted or converted. The evaluation runner is currently a scaffold, so a useful next step is a measured benchmark with representative questions and citation/answer-quality checks.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top: 14px">Questions you can answer confidently</h3>
+    <div class="answer-block"><strong>Why use RAG instead of sending the whole codebase to an LLM?</strong> “Repositories can be large, and sending everything is expensive and noisy. I index chunks once, retrieve the most relevant evidence per question, and keep source metadata for citations.”</div>
+    <div class="answer-block"><strong>Why Celery and Redis?</strong> “Indexing can take longer than a normal API request. Celery runs it in the background; Redis transports tasks and lets the UI poll progress.”</div>
+    <div class="answer-block"><strong>What would you improve next?</strong> “I would add a benchmark dataset, measure retrieval recall and citation accuracy, tune chunking/top-k from those results, and expose indexing coverage so users know which files were included.”</div>
+
+    <p class="refs"><strong>Code landmarks:</strong> <code>backend/app/main.py</code> · <code>backend/app/api/routes.py</code> · <code>backend/app/tasks/reindex.py</code> · <code>backend/app/indexer/indexer.py</code> · <code>backend/app/services/vector_store.py</code> · <code>backend/app/agent/loop.py</code> · <code>backend/app/services/llm_service.py</code> · <code>frontend/src/App.tsx</code></p>
+    <div class="page-footer"><span>MY CODEBASE ONBOARDING ASSISTANT</span><span>05 · INTERVIEW PRACTICE</span></div>
+  </section>
+</body>
+</html>

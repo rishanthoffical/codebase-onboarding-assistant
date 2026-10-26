@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+import ast
+import json
+import logging
 from app.agent.tool_registry import TOOL_DEFINITIONS, execute_tool
 
 
@@ -17,7 +22,7 @@ def test_read_file_through_registry():
         {
             "path": "app/agent/loop.py",
             "line_start": 1,
-            "line_end": 5,
+            "line_end": 10,
         },
     )
 

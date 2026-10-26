@@ -1,22 +1,26 @@
-FROM python:3.9-slim
+FROM python:3.14-slim
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the requirements file
-COPY backend/requirements.txt .
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
+COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the backend application code
-COPY backend/app ./app
+# Create a non-root user for background workers.
+RUN useradd \
+    --create-home \
+    --shell /bin/bash \
+    appuser
 
-# Copy the environment variable example
-COPY backend/.env.example .env
+COPY app ./app
 
-# Expose the port the app runs on
+# Give the application user ownership of the application directory.
+RUN chown -R appuser:appuser /app
+
 EXPOSE 8000
 
-# Command to run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

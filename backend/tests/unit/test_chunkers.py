@@ -1,5 +1,5 @@
 import pytest
-from backend.app.indexer.chunker import chunk_code, chunk_docs
+from app.indexer.chunker import chunk_code, chunk_docs
 
 def test_chunk_code():
     code = """

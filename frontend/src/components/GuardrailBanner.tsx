@@ -1,32 +1,26 @@
 import React from 'react';
 
 interface GuardrailBannerProps {
-    message: string;
-    type: 'warning' | 'error' | 'info';
+  message?: string;
+  type?: 'warning' | 'error' | 'info';
 }
 
-const GuardrailBanner: React.FC<GuardrailBannerProps> = ({ message, type }) => {
-    let bannerClass = '';
+const GuardrailBanner: React.FC<GuardrailBannerProps> = ({
+  message,
+  type = 'info',
+}) => {
+  // Do not render an empty banner when there is no guardrail message.
+  if (!message) {
+    return null;
+  }
 
-    switch (type) {
-        case 'warning':
-            bannerClass = 'guardrail-banner warning';
-            break;
-        case 'error':
-            bannerClass = 'guardrail-banner error';
-            break;
-        case 'info':
-            bannerClass = 'guardrail-banner info';
-            break;
-        default:
-            bannerClass = 'guardrail-banner';
-    }
+  const bannerClass = `guardrail-banner ${type}`;
 
-    return (
-        <div className={bannerClass}>
-            {message}
-        </div>
-    );
+  return (
+    <div className={bannerClass}>
+      {message}
+    </div>
+  );
 };
 
 export default GuardrailBanner;

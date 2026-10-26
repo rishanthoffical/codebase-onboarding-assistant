@@ -55,3 +55,143 @@ h1, h2, h3 {
 .repo-picker {
     margin: 10px 0;
 }
+
+.project-intake {
+    display: grid;
+    gap: 12px;
+    max-width: 900px;
+    margin: 16px 0;
+    padding: 16px;
+    border: 1px solid #aeb7b8;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.project-intake-heading,
+.project-intake-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.project-intake-heading {
+    justify-content: space-between;
+}
+
+.project-intake-heading h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+}
+
+.project-intake-heading span {
+    color: #4e5b5d;
+    font-size: 14px;
+}
+
+.project-intake button {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid #58686b;
+    border-radius: 4px;
+    background: #fff;
+    color: #1e292b;
+    font: inherit;
+    cursor: pointer;
+}
+
+.project-intake button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.project-intake .inspect-project-button {
+    border-color: #155e63;
+    background: #155e63;
+    color: #fff;
+    font-weight: 600;
+}
+
+.project-drop-target {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    min-height: 112px;
+    padding: 18px;
+    border: 2px dashed #849395;
+    border-radius: 4px;
+    background: #f5f8f7;
+    text-align: center;
+}
+
+.project-drop-target.is-dragging {
+    border-color: #155e63;
+    background: #e7f1ef;
+}
+
+.project-file-input {
+    display: none;
+}
+
+.selected-project-files {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding-left: 20px;
+    color: #394446;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.project-import-status {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .project-intake {
+        padding: 12px;
+    }
+
+    .project-intake-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .project-intake .inspect-project-button,
+    .project-intake-actions button {
+        flex: 1 1 auto;
+    }
+}
+
+.citations {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f5f7fa;
+}
+
+.citations strong {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.citation {
+    font-family: monospace;
+    font-size: 13px;
+    margin-top: 4px;
+    word-break: break-word;
+}
+
+.confidence {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.next-step {
+    margin-top: 10px;
+    padding: 10px;
+    border-left: 3px solid #666;
+    background: #f7f7f7;
+    font-size: 13px;
+}

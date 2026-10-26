@@ -44,6 +44,7 @@ The My Codebase Onboarding Assistant is a tool designed to help engineers quickl
 
 ## Usage
 - Access the application via your web browser at `http://localhost:3000`.
+- Use **Add a codebase** to upload a `.zip` archive, individual text/code files, or a project folder. The app indexes the selection and automatically generates a beginner-friendly overview with file citations. The defaults allow up to 5,000 files, 500 MB per upload (including extracted ZIP contents), and 10 MB per individual source file; configure these with `MAX_FILES`, `MAX_UPLOAD_SIZE_MB`, and `MAX_SINGLE_FILE_MB` in `backend/.env`. Common runtime, build, cache, and credential files are excluded. For `.rar` or `.7z` archives, extract the folder first or convert the archive to `.zip`.
 - Use the chat interface to ask questions about the codebase.
 - Monitor indexing status and guardrail warnings in real-time.
 

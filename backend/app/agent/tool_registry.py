@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from app.agent.tools import (
+    REPO_ROOT,
     grep_repo,
     read_file,
     git_blame,
@@ -99,6 +100,7 @@ TOOL_DEFINITIONS = [
 def execute_tool(
     tool_name: str,
     arguments: Dict[str, Any],
+    repo_root: str = str(REPO_ROOT),
 ) -> Any:
 
     if tool_name == "grep_repo":
@@ -108,6 +110,7 @@ def execute_tool(
                 "path_glob",
                 "**/*",
             ),
+            repo_root=repo_root,
         )
 
     if tool_name == "read_file":
@@ -124,12 +127,14 @@ def execute_tool(
                 if arguments.get("line_end") is not None
                 else None
             ),
+            repo_root=repo_root,
         )
 
     if tool_name == "git_blame":
         return git_blame(
             path=arguments["path"],
             line=int(arguments["line"]),
+            repo_root=repo_root,
         )
 
     raise ValueError(

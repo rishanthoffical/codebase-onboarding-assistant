@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from app.indexer.repo import RepoManager
 from app.models.repo import Repo
 from app.services.cache import Cache
+from app.config import settings
 
 
 class RepoService:
@@ -32,12 +33,7 @@ class RepoService:
             self.cache_service = cache_service
         else:
             try:
-                self.cache_service = Cache(
-                    os.getenv(
-                        "REDIS_URL",
-                        "redis://localhost:6379/0",
-                    )
-                )
+               self.cache_service = Cache(settings.redis_url)
             except Exception:
                 self.cache_service = None
 
@@ -293,6 +289,26 @@ class RepoService:
 
         return repository
 
+    def unregister_repo(
+        self,
+        repo_id: str,
+    ) -> None:
+        RepoService._registry.pop(
+            repo_id,
+            None,
+        )
+
+        if self.cache_service is not None:
+            try:
+                self.cache_service.delete(
+                    f"repo:{repo_id}"
+                )
+                self.cache_service.delete(
+                    f"repo:registry:{repo_id}"
+                )
+            except Exception:
+                pass
+
     # ------------------------------------------------------------------
     # Get
     # ------------------------------------------------------------------
@@ -372,6 +388,11 @@ class RepoService:
                     repository.status = (
                         "changes_detected"
                     )
+            elif (
+                current_commit is None
+                and repository.status == "indexed"
+            ):
+                repository.status = "indexed"
             else:
                 repository.status = "ready"
 
@@ -384,6 +405,11 @@ class RepoService:
                 repository.status = (
                     "path_not_found"
                 )
+            elif (
+                repository.status == "indexed"
+                and repository.last_indexed_commit is None
+            ):
+                repository.status = "indexed"
             else:
                 repository.status = (
                     "not_git_repository"
@@ -577,11 +603,9 @@ class RepoService:
             commit_sha
         )
 
-        if (
-            commit_sha
-            and repository.current_commit
-            == commit_sha
-        ):
+        if commit_sha and repository.current_commit == commit_sha:
+            repository.status = "indexed"
+        elif commit_sha is None and repository.current_commit is None:
             repository.status = "indexed"
         else:
             repository.status = "ready"
@@ -618,3 +642,4 @@ class RepoService:
                 repo_path
             ).walk_repo()
         ]
+

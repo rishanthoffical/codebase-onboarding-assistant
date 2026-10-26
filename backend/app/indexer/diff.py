@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from dataclasses import dataclass
 from typing import Optional
@@ -25,6 +26,19 @@ VALID_STATUSES = {
 }
 
 
+def _repository_path() -> str:
+    """
+    Return the Git repository working directory.
+
+    Docker uses /workspace/repository as the default mounted
+    repository. REPOSITORY_PATH can override it.
+    """
+    return os.getenv(
+        "REPOSITORY_PATH",
+        "/workspace/repository",
+    )
+
+
 def _run_git_diff(
     base_commit: str,
     head_commit: str,
@@ -42,6 +56,7 @@ def _run_git_diff(
             base_commit,
             head_commit,
         ],
+        cwd=_repository_path(),
         capture_output=True,
         text=True,
         check=True,
@@ -171,6 +186,7 @@ def get_file_diff(
             "--",
             file_path,
         ],
+        cwd=_repository_path(),
         capture_output=True,
         text=True,
         check=True,
@@ -209,18 +225,6 @@ def get_incremental_changes(
 ) -> dict[str, list[str]]:
     """
     Return files grouped by incremental indexing operation.
-
-    Example:
-
-    {
-        "NEW": ["backend/new_file.py"],
-        "MODIFIED": ["backend/app.py"],
-        "DELETED": ["backend/old.py"],
-        "UNCHANGED": []
-    }
-
-    Git diff only reports changed files. UNCHANGED therefore represents
-    files that exist in both commits but were not changed.
     """
     changes = get_file_changes(
         base_commit,
@@ -231,40 +235,13 @@ def get_incremental_changes(
         "NEW": [],
         "MODIFIED": [],
         "DELETED": [],
+        "RENAMED": [],
+        "COPIED": [],
         "UNCHANGED": [],
     }
 
     for change in changes:
-        if change.status == "NEW":
-            result["NEW"].append(
-                change.file_path
-            )
-
-        elif change.status == "MODIFIED":
-            result["MODIFIED"].append(
-                change.file_path
-            )
-
-        elif change.status == "DELETED":
-            result["DELETED"].append(
-                change.file_path
-            )
-
-        elif change.status == "RENAMED":
-            # A rename should be handled as:
-            # delete old vector + index new file.
-            if change.old_path:
-                result["DELETED"].append(
-                    change.old_path
-                )
-
-            result["NEW"].append(
-                change.file_path
-            )
-
-        elif change.status == "COPIED":
-            result["NEW"].append(
-                change.file_path
-            )
+        if change.status in result:
+            result[change.status].append(change.file_path)
 
     return result

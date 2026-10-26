@@ -1,54 +1,148 @@
-version: '3.8'
-
 services:
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    user: "appuser"
+    working_dir: /app
     volumes:
       - ./backend:/app
+      - ./:/workspace/repository
+      - ./chroma_db:/app/chroma_db
+      - ./chroma_cache:/home/appuser/.cache
+      - ./uploaded_repositories:/workspace/uploads
     env_file:
-      - ./backend/.env.example
+      - ./backend/.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      CHROMA_PERSIST_DIRECTORY: /app/chroma_db
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      REPOSITORY_PATH: /workspace/repository
+      REPOSITORY_UPLOADS_PATH: /workspace/uploads
     depends_on:
-      - redis
-      - chroma
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
     ports:
       - "8000:8000"
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
 
   redis:
-    image: "redis:alpine"
+    image: redis:7-alpine
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   chroma:
-    image: "chroma/chroma:latest"
-    ports:
-      - "8001:8001"
+    image: chromadb/chroma:1.5.9
+    restart: unless-stopped
+    volumes:
+      - ./chroma_db:/data
+    expose:
+      - "8000"
+    command:
+      - run
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --path
+      - /data
 
   celery:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A app.tasks.celery_app worker --loglevel=info
+    user: "appuser"
+    working_dir: /app
     volumes:
       - ./backend:/app
+      - ./:/workspace/repository
+      - ./chroma_db:/app/chroma_db
+      - ./chroma_cache:/home/appuser/.cache
+      - ./uploaded_repositories:/workspace/uploads
+    env_file:
+      - ./backend/.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      CHROMA_PERSIST_DIRECTORY: /app/chroma_db
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      REPOSITORY_PATH: /workspace/repository
+      REPOSITORY_UPLOADS_PATH: /workspace/uploads
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    command: >
+      celery
+      -A app.tasks.celery_app.celery_app
+      worker
+      --loglevel=info
+      --pool=solo
 
   celery-beat:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A app.tasks.celery_app beat --loglevel=info
+    user: "appuser"
+    working_dir: /app
     volumes:
       - ./backend:/app
+      - ./:/workspace/repository
+      - ./chroma_db:/app/chroma_db
+      - ./chroma_cache:/home/appuser/.cache
+      - ./uploaded_repositories:/workspace/uploads
+    env_file:
+      - ./backend/.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      CHROMA_PERSIST_DIRECTORY: /app/chroma_db
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      REPOSITORY_PATH: /workspace/repository
+      REPOSITORY_UPLOADS_PATH: /workspace/uploads
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    command:
+      - celery
+      - -A
+      - app.tasks.celery_app.celery_app
+      - beat
+      - --loglevel=info
 
   frontend:
     build:
       context: ./frontend
     volumes:
       - ./frontend:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
+    environment:
+      VITE_API_BASE_URL: http://127.0.0.1:8000
+    depends_on:
+      - backend
